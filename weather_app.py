@@ -1,5 +1,5 @@
 import sys
-from PyQt5.QtWidgets import QGraphicsBlurEffect, QApplication, QMainWindow, QPushButton, QLabel, QMessageBox, QVBoxLayout, QWidget, QSizePolicy
+from PyQt5.QtWidgets import QGraphicsBlurEffect, QApplication, QMainWindow, QPushButton, QVBoxLayout, QLabel, QMessageBox, QVBoxLayout, QWidget, QSizePolicy
 from PyQt5.QtGui import QPixmap,QFont, QColor
 from PyQt5.QtCore import Qt
 from user_settings import UserSettings
@@ -12,7 +12,7 @@ class WeatherApp(QMainWindow):
         self.user_settings = UserSettings()
         self.city = self.user_settings.loadSelectedCity() or "南京市"  # 默认城市
         self.weather_service = WeatherService()
-        self.notification_service = NotificationService()
+        # self.notification_service = NotificationService(self.alert_label)
         self.initUI()
 
     def initUI(self):
@@ -31,7 +31,7 @@ class WeatherApp(QMainWindow):
         self.background_label.setGraphicsEffect(blur_effect)
         
         # 显示所选城市
-        self.city_label = QLabel(f"{self.city}  xx区  ▼", self)
+        self.city_label = QLabel(f"{self.city}  ▼", self)
         self.city_label.setFixedWidth(600)
         self.city_label.setFixedHeight(150)
         font = QFont("Arial", 18)
@@ -80,6 +80,20 @@ class WeatherApp(QMainWindow):
         self.wth_label.setStyleSheet("color: white;")
         self.wth_label.move(240, 130)
         
+        # 预警标签
+        self.alert_label = QLabel("", self)
+        self.alert_label.setGeometry(98, 360, 300, 50)  # 设置位置和大小
+        font = QFont("Arial", 14)
+        font.setBold(True)  # 加粗字体
+        self.alert_label.setFont(font)
+        self.alert_label.setAlignment(Qt.AlignCenter)  # 居中显示文字
+        self.alert_label.setStyleSheet(
+            "color: white; background-color: blue; padding: 5px; border-radius: 10px;"
+        )
+        self.alert_label.hide()  # 默认隐藏
+        
+        self.notification_service = NotificationService(self.alert_label)
+        
         # 刷新按钮
         self.refresh_button = QPushButton("刷新", self)
         self.refresh_button.clicked.connect(self.updateWeather)
@@ -124,7 +138,7 @@ class WeatherApp(QMainWindow):
         self.foc_label.setText(f"{weather.forecast[0]}° {weather.forecast[1]}°")
         self.wth_label.setText(f"{weather.weather}")
         
-        # 判断大风和大雨提醒
+        # 风险预警
         self.notification_service.sendWeatherAlert(weather)
 
     def openSettings(self):
