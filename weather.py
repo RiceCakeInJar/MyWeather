@@ -8,6 +8,6 @@ class Weather:
         self.wind_level = wind_level  # 风力等级，例如 "2级"
         self.forecast = forecast
         self.weather = weather
-        
+
     def get_wind_info(self):
         return f"{self.wind_direction}{self.wind_level}"

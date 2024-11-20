@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import QLabel
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
 
+
 class NotificationService:
     def __init__(self, alert_label: QLabel):
         """
@@ -27,9 +28,9 @@ class NotificationService:
             alerts = []  # 用于存储所有风险类型
 
             if weather.is_windy:
-                alerts.append("风暴预警")
+                alerts.append("大风预警")
             if weather.is_rainy:
-                alerts.append("暴雨预警")
+                alerts.append("降水预警")
 
             if alerts:
                 # 设置警告文本

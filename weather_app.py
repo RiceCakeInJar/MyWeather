@@ -1,149 +1,142 @@
-import sys
-from PyQt5.QtWidgets import QGraphicsBlurEffect, QApplication, QMainWindow, QPushButton, QVBoxLayout, QLabel, QMessageBox, QVBoxLayout, QWidget, QSizePolicy
-from PyQt5.QtGui import QPixmap,QFont, QColor
-from PyQt5.QtCore import Qt
+import time
+from PyQt5.QtWidgets import QGraphicsBlurEffect, QMainWindow, QPushButton, QLabel
+from PyQt5.QtGui import QPixmap, QFont, QIcon
+from PyQt5.QtCore import Qt, QSize
 from user_settings import UserSettings
 from weather_service import WeatherService
 from notification_service import NotificationService
+
 
 class WeatherApp(QMainWindow):
     def __init__(self):
         super().__init__()
         self.user_settings = UserSettings()
-        self.city = self.user_settings.loadSelectedCity() or "南京市"  # 默认城市
         self.weather_service = WeatherService()
-        # self.notification_service = NotificationService(self.alert_label)
+
+        self.city = self.user_settings.loadSelectedCity() or "南京"
+        self.username = self.user_settings.loadUserName() or "admin"
+        self.character = self.user_settings.loadCharac() or "风见幽香"
+
         self.initUI()
 
     def initUI(self):
         self.setWindowTitle("MyWeather - HomePage")
         self.setGeometry(100, 100, 1000, 600)  # 宽1000，高600的窗口
 
-        # 设置背景图
-        self.background_label = QLabel(self)
-        self.background_label.setGeometry(0, 0, 1000, 600)  # 设置背景图片大小和位置
-        pixmap = QPixmap("background.png")  # 替换为你的背景图片路径
-        self.background_label.setPixmap(pixmap)
-        self.background_label.setScaledContents(True)  # 使背景图片自动适应窗口大小
-        # 添加模糊效果
-        blur_effect = QGraphicsBlurEffect()
-        blur_effect.setBlurRadius(10)  # 设置模糊半径
-        self.background_label.setGraphicsEffect(blur_effect)
-        
-        # 显示所选城市
-        self.city_label = QLabel(f"{self.city}  ▼", self)
-        self.city_label.setFixedWidth(600)
-        self.city_label.setFixedHeight(150)
-        font = QFont("Arial", 18)
-        font.setBold(True)  # 设置加粗
-        self.city_label.setFont(font)
-        self.city_label.setStyleSheet("color: white;")
-        self.city_label.move(60, 10)
+        # 背景设置
+        self.setBackground("background.png")
 
-        # 温度标签
-        self.tmp_label = QLabel("<loading>°", self)
-        self.tmp_label.setFixedWidth(600)
-        self.tmp_label.setFixedHeight(200)
-        font = QFont("Arial", 60)
-        font.setBold(False)  # 设置加粗
-        self.tmp_label.setFont(font)
-        self.tmp_label.setStyleSheet("color: white;")
-        self.tmp_label.move(60, 105)
+        # 添加 UI 组件
+        self.city_label = self.createLabel(f"{self.city}", 60, 10, 600, 150, "Arial", 18, bold=True)
+        self.grt_label = self.createLabel(self.getGreetingText(), 60, 450, 600, 150, "Arial", 12, bold=True)
+        self.tmp_label = self.createLabel("<loading>°", 60, 105, 600, 200, "Arial", 60)
+        self.hum_wid_label = self.createLabel("<loading>", 60, 260, 1000, 150, "Arial", 16, bold=True)
+        self.foc_label = self.createLabel("<loading>", 410, 130, 1000, 200, "Arial", 20, bold=True)
+        self.wth_label = self.createLabel("<loading>", 240, 130, 1000, 200, "Arial", 20, bold=True)
+        self.alert_label = self.createLabel("", 60, 380, 300, 50, "Arial", 14, bold=True, center=True,
+                                            style="color: white; background-color: blue; padding: 5px; border-radius: 10px;")
+        self.alert_label.hide()
 
-        # 湿度与风向标签
-        self.hum_wid_label = QLabel("<loading>", self)
-        self.hum_wid_label.setFixedWidth(1000)
-        self.hum_wid_label.setFixedHeight(150)
-        font = QFont("Arial", 18)
-        font.setBold(True)  # 设置加粗
-        self.hum_wid_label.setFont(font)
-        self.hum_wid_label.setStyleSheet("color: white;")
-        self.hum_wid_label.move(60, 240)
-
-        # 预报标签
-        self.foc_label = QLabel("<loading>", self)
-        self.foc_label.setFixedWidth(1000)
-        self.foc_label.setFixedHeight(200)
-        font = QFont("Arial", 20)
-        font.setBold(True)  # 设置加粗
-        self.foc_label.setFont(font)
-        self.foc_label.setStyleSheet("color: white;")
-        self.foc_label.move(410, 130)
-        
-        # 天气标签
-        self.wth_label = QLabel("<loading>", self)
-        self.wth_label.setFixedWidth(1000)
-        self.wth_label.setFixedHeight(200)
-        font = QFont("Arial", 20)
-        font.setBold(True)  # 设置加粗
-        self.wth_label.setFont(font)
-        self.wth_label.setStyleSheet("color: white;")
-        self.wth_label.move(240, 130)
-        
-        # 预警标签
-        self.alert_label = QLabel("", self)
-        self.alert_label.setGeometry(98, 360, 300, 50)  # 设置位置和大小
-        font = QFont("Arial", 14)
-        font.setBold(True)  # 加粗字体
-        self.alert_label.setFont(font)
-        self.alert_label.setAlignment(Qt.AlignCenter)  # 居中显示文字
-        self.alert_label.setStyleSheet(
-            "color: white; background-color: blue; padding: 5px; border-radius: 10px;"
-        )
-        self.alert_label.hide()  # 默认隐藏
-        
         self.notification_service = NotificationService(self.alert_label)
-        
-        # 刷新按钮
-        self.refresh_button = QPushButton("刷新", self)
-        self.refresh_button.clicked.connect(self.updateWeather)
-        self.refresh_button.move(600, 20)
 
-        # 设置按钮
-        self.settings_button = QPushButton("设置", self)
-        self.settings_button.clicked.connect(self.openSettings)
-        self.settings_button.move(700, 20)
+        # 图标按钮
+        self.createButton("refresh_icon.png", self.update, 850, 20)  # 刷新
+        self.createButton("settings_icon.png", self.openSettings, 920, 20)  # 设置
 
-        # 界面装饰元素
-        # 预报分割线
-        self.dic_label_0 = QLabel("|", self)
-        self.dic_label_0.setFixedWidth(100)
-        self.dic_label_0.setFixedHeight(150)
-        font = QFont("Arial", 50)
-        font.setBold(False)  # 设置加粗
-        self.dic_label_0.setFont(font)
-        self.dic_label_0.setStyleSheet("color: white;")
-        self.dic_label_0.move(360, 120)  
-        
-        # 预报标题
-        self.dic_label_1 = QLabel("未来两小时", self)
-        self.dic_label_1.setFixedWidth(400)
-        self.dic_label_1.setFixedHeight(150)
-        font = QFont("Arial", 18)
-        font.setBold(False)  # 设置加粗
-        self.dic_label_1.setFont(font)
-        self.dic_label_1.setStyleSheet("color: white;")
-        self.dic_label_1.move(410, 100) 
-        
+
+        # 界面装饰
+        self.createLabel("|", 360, 120, 100, 150, "Arial", 50)
+        self.createLabel("未来两小时", 410, 100, 400, 150, "Arial", 14)
+
+        # 看板娘
+        self.charac_label = QLabel(self)
+        self.charac_label.setGeometry(800, 400, 200, 200)
+        self.loadCharacterImage()
         # 初次更新天气
-        self.updateWeather()
+        self.update()
 
-    def updateWeather(self):
-        # 获取当前天气数据
+    def setBackground(self, image_path):
+        """设置背景图和模糊效果"""
+        background_label = QLabel(self)
+        background_label.setGeometry(0, 0, 1000, 600)
+        pixmap = QPixmap(image_path)
+        background_label.setPixmap(pixmap)
+        background_label.setScaledContents(True)
+        blur_effect = QGraphicsBlurEffect()
+        blur_effect.setBlurRadius(10)
+        background_label.setGraphicsEffect(blur_effect)
+
+    def loadCharacterImage(self):
+        """加载用户选择的看板娘图片"""
+        if self.character == "风见幽香":
+            image_path = "char_0.png"  # 假设对应图片文件
+        else:
+            image_path = "char_1.png"
+        pixmap = QPixmap(image_path)
+        self.charac_label.setPixmap(pixmap)
+        self.charac_label.setScaledContents(True)
+
+    def createLabel(self, text, x, y, width, height, font_family, font_size, bold=False, center=False, style="color: white;"):
+        """辅助函数：创建标签并设置样式"""
+        label = QLabel(text, self)
+        label.setGeometry(x, y, width, height)
+        font = QFont(font_family, font_size)
+        font.setBold(bold)
+        label.setFont(font)
+        label.setStyleSheet(style)
+        if center:
+            label.setAlignment(Qt.AlignCenter)
+        return label
+
+    def createButton(self, icon_path, callback, x, y, width=50, height=50):
+        """辅助函数：创建图标按钮并绑定点击事件"""
+        button = QPushButton(self)
+        button.setIcon(QIcon(icon_path))
+        button.setIconSize(QSize(width - 10, height - 10))
+        button.setFixedSize(width, height)
+        button.clicked.connect(callback)
+        button.setStyleSheet("border: none; padding: 5px;")
+        button.move(x, y)
+        return button
+
+
+    def getGreetingText(self):
+        """获取时间段问候语"""
+        hour = time.localtime().tm_hour
+        if 5 <= hour < 9:
+            return f"早上好, {self.username}"
+        elif 9 <= hour < 12:
+            return f"上午好, {self.username}"
+        elif 12 <= hour < 14:
+            return f"中午好, {self.username}"
+        elif 14 <= hour < 18:
+            return f"下午好, {self.username}"
+        else:
+            return f"晚上好, {self.username}"
+
+    def update(self):
+        """更新天气数据并刷新界面"""
         weather = self.weather_service.getCurrentWeather(self.city)
-        
-        # 更新各个标签的内容
+        self.city_label.setText(f"{self.city}")
         self.tmp_label.setText(f"{weather.temperature}°")
-        self.hum_wid_label.setText(f"{weather.get_wind_info()} | 湿度{weather.humidity}%")
+        self.hum_wid_label.setText(f"{weather.get_wind_info()}级 | 湿度{weather.humidity}%")
         self.foc_label.setText(f"{weather.forecast[0]}° {weather.forecast[1]}°")
         self.wth_label.setText(f"{weather.weather}")
-        
-        # 风险预警
+        self.grt_label.setText(self.getGreetingText())
+        self.loadCharacterImage()
         self.notification_service.sendWeatherAlert(weather)
 
+    def updateUserSettings(self, updated_settings):
+        """接收设置更新并更新主界面"""
+        self.username = updated_settings.get("username", self.username)
+        self.city = updated_settings.get("selectedCity", self.city)
+        self.character = updated_settings.get("charac", self.character)
+        self.update()
+        print("用户设置已更新:", updated_settings)
+
     def openSettings(self):
-        # 打开设置窗口，示例代码仅弹出消息框
-        QMessageBox.information(self, "设置", "进入设置界面")
+        """打开设置界面"""
+        self.user_settings.openSettingsDialog(parent=self, on_settings_updated=self.updateUserSettings)
 
     def start(self):
         self.show()
