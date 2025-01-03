@@ -1,3 +1,4 @@
+import time
 import requests
 from weather import Weather
 
@@ -12,7 +13,11 @@ class WeatherService:
 
     def getCurrentWeather(self, city):
         # 城市名转代码
-        city = self.city_id[city]  # 默认南京
+        if city not in self.city_id:
+            print(f"城市 {city} 不在支持的范围内，默认使用北京进行查询。")
+            city = "北京"  # 默认使用北京
+
+        city = self.city_id[city]
 
         # 构造当前天气请求参数
         params = {
@@ -20,50 +25,59 @@ class WeatherService:
             "key": self.api_key
         }
 
-        try:
-            # 发起当前天气请求
-            response = requests.get(self.current_weather_url, params=params)
-            response.raise_for_status()  # 检查请求是否成功
-            data = response.json()
+        # 重试次数
+        retries = 3
 
-            # 检查返回的状态码
-            if data.get("code") != "200":
-                raise ValueError(f"API 返回错误码：{data.get('code')}")
+        for attempt in range(retries):
+            try:
+                # 发起当前天气请求
+                response = requests.get(self.current_weather_url, params=params)
+                response.raise_for_status()  # 检查请求是否成功
+                data = response.json()
 
-            # 解析 JSON 数据
-            now_data = data.get("now", {})
-            temperature = int(now_data.get("temp", 20))  # 默认温度为 20
-            humidity = int(now_data.get("humidity", 50))  # 默认湿度为 50
-            is_windy = int(now_data.get("windScale", 0)) >= 3  # 风力大于等于 3 级视为有风
-            is_rainy = now_data.get("text", "").find(
-                "雨") != -1  # 天气描述中包含“雨”视为下雨
-            wind_direction = now_data.get("windDir", "未知")
-            wind_level = now_data.get("windScale", "未知")
-            weather_description = now_data.get("text", "未知")
+                # 检查返回的状态码
+                if data.get("code") != "200":
+                    raise ValueError(f"API 返回错误码：{data.get('code')}")
 
-            # 获取未来两小时天气预报
-            forecast = self.getHourlyForecast(city)
+                # 解析 JSON 数据
+                now_data = data.get("now", {})
+                temperature = int(now_data.get("temp", 20))  # 默认温度为 20
+                humidity = int(now_data.get("humidity", 50))  # 默认湿度为 50
+                is_windy = int(now_data.get("windScale", 0)) >= 3  # 风力大于等于 3 级视为有风
+                is_rainy = now_data.get("text", "").find("雨") != -1  # 天气描述中包含“雨”视为下雨
+                wind_direction = now_data.get("windDir", "未知")
+                wind_level = now_data.get("windScale", "未知")
+                weather_description = now_data.get("text", "未知")
 
-            # 返回 Weather 对象
-            return Weather(
-                temperature=temperature,
-                humidity=humidity,
-                is_windy=is_windy,
-                is_rainy=is_rainy,
-                wind_direction=wind_direction,
-                wind_level=wind_level,
-                forecast=forecast,
-                weather=weather_description
-            )
+                # 获取未来两小时天气预报
+                forecast = self.getHourlyForecast(city)
 
-        except requests.RequestException as e:
-            print(f"网络请求失败：{e}")
-        except ValueError as e:
-            print(f"数据解析错误：{e}")
-        except Exception as e:
-            print(f"未知错误：{e}")
+                # 返回 Weather 对象
+                return Weather(
+                    temperature=temperature,
+                    humidity=humidity,
+                    is_windy=is_windy,
+                    is_rainy=is_rainy,
+                    wind_direction=wind_direction,
+                    wind_level=wind_level,
+                    forecast=forecast,
+                    weather=weather_description
+                )
 
-        # 如果发生错误，返回默认值
+            except requests.RequestException as e:
+                print(f"网络请求失败，尝试重新连接 ({attempt + 1}/{retries}):{e}")
+                time.sleep(1)  # 间隔1秒后重试
+            except ValueError as e:
+                print(f"数据解析错误：{e}")
+                break  # 遇到数据解析错误时直接跳出重试
+            except Exception as e:
+                print(f"未知错误：{e}")
+                break  # 遇到其他未知错误时直接跳出重试
+
+        # 如果重试三次仍然失败，输出提示信息并返回默认值
+        print("网络请求失败，已达到最大重试次数，返回默认值。")
+
+        # 返回默认值
         return Weather(
             temperature=20,
             humidity=50,

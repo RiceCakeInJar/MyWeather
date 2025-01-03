@@ -4,8 +4,8 @@ class Weather:
         self.humidity = humidity
         self.is_windy = is_windy
         self.is_rainy = is_rainy
-        self.wind_direction = wind_direction  # 风向，例如 "东风"
-        self.wind_level = wind_level  # 风力等级，例如 "2级"
+        self.wind_direction = wind_direction
+        self.wind_level = wind_level
         self.forecast = forecast
         self.weather = weather
 

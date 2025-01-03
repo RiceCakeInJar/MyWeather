@@ -40,7 +40,7 @@ class WeatherApp(QMainWindow):
         self.notification_service = NotificationService(self.alert_label)
 
         # 图标按钮
-        self.createButton("refresh_icon.png", self.update, 850, 20)  # 刷新
+        self.createButton("refresh_icon.png", self.refresh, 850, 20)  # 刷新
         self.createButton("settings_icon.png", self.openSettings, 920, 20)  # 设置
 
 
@@ -53,7 +53,7 @@ class WeatherApp(QMainWindow):
         self.charac_label.setGeometry(800, 400, 200, 200)
         self.loadCharacterImage()
         # 初次更新天气
-        self.update()
+        self.refresh()
 
     def setBackground(self, image_path):
         """设置背景图和模糊效果"""
@@ -114,7 +114,7 @@ class WeatherApp(QMainWindow):
         else:
             return f"晚上好, {self.username}"
 
-    def update(self):
+    def refresh(self):
         """更新天气数据并刷新界面"""
         weather = self.weather_service.getCurrentWeather(self.city)
         self.city_label.setText(f"{self.city}")
@@ -131,7 +131,7 @@ class WeatherApp(QMainWindow):
         self.username = updated_settings.get("username", self.username)
         self.city = updated_settings.get("selectedCity", self.city)
         self.character = updated_settings.get("charac", self.character)
-        self.update()
+        self.refresh()
         print("用户设置已更新:", updated_settings)
 
     def openSettings(self):

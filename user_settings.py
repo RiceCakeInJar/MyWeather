@@ -15,7 +15,8 @@ class UserSettings:
         try:
             with open(self.settings_file, "r") as file:
                 return json.load(file)
-        except (FileNotFoundError, json.JSONDecodeError):
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            print(f"配置文件加载失败：{e}。将使用默认配置。")
             return self.getDefaultConfig()
 
     def saveConfig(self, settings):
